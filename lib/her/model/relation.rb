@@ -86,7 +86,10 @@ module Her
         params = @params.merge(ids.last.is_a?(Hash) ? ids.pop : {})
         ids = Array(params[@parent.primary_key]) if params.key?(@parent.primary_key)
 
-        results = ids.flatten.compact.uniq.map do |id|
+        batch = :each
+        batch = [:each_slice, 10] if @parent.json_api_paths
+
+        results = ids.flatten.compact.uniq.send(*batch).map do |id|
           resource = nil
           request_params = params.merge(
             :_method => @parent.method_for(:find),
@@ -95,9 +98,13 @@ module Her
 
           @parent.request(request_params) do |parsed_data, response|
             if response.success?
-              resource = @parent.new_from_parsed_data(parsed_data)
-              resource.instance_variable_set(:@changed_attributes, {})
-              resource.run_callbacks :find
+              if id.kind_of?(Array)
+                resource = @parent.new_collection(parsed_data)
+              else
+                resource = @parent.new_from_parsed_data(parsed_data)
+                resource.instance_variable_set(:@changed_attributes, {})
+                resource.run_callbacks :find
+              end
             else
               return nil
             end
@@ -105,6 +112,7 @@ module Her
 
           resource
         end
+        results.flatten!
 
         ids.length > 1 || ids.first.kind_of?(Array) ? results : results.first
       end

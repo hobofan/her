@@ -185,6 +185,21 @@ describe Her::Model::Paths do
         end
       end
     end
+
+    context 'json_api_paths' do
+      before do
+        spawn_model 'User' do
+          json_api_paths true
+        end
+      end
+
+      describe '#build_request_path' do
+        it 'comma seperates the primary key' do
+          User.build_request_path(:id => 'foo').should == 'users/foo'
+          User.build_request_path(:id => ['foo', 'bar']).should == 'users/foo,bar'
+        end
+      end
+    end
   end
 
   context "making subdomain HTTP requests" do

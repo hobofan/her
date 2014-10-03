@@ -198,11 +198,17 @@ describe Her::Model::ORM do
           stub.get("/users?age=42&foo=bar") { |env| [200, {}, [{ :id => 3, :age => 42 }].to_json] }
           stub.get("/users?age=42") { |env| [200, {}, [{ :id => 1, :age => 42 }].to_json] }
           stub.get("/users?age=40") { |env| [200, {}, [{ :id => 1, :age => 40 }].to_json] }
+          stub.get("/admins/1,3") { |env| [200, {}, [{ :id => 1, :age => 42 }, { :id => 3, :age => 34 }].to_json] }
         end
       end
 
       spawn_model :User do
         uses_api api
+      end
+
+      spawn_model :Admin do
+        uses_api api
+        json_api_paths true
       end
     end
 
@@ -260,6 +266,16 @@ describe Her::Model::ORM do
       @users = User.scoped
       @users.where(:age => 42).should be_all { |u| u.age == 42 }
       @users.where(:age => 40).should be_all { |u| u.age == 40 }
+    end
+
+    context 'json_api_paths' do
+      it "handles finding by an array of ids with json_api" do
+        @users = Admin.find([1, 3])
+        @users.should be_kind_of(Array)
+        @users.length.should == 2
+        @users[0].id.should == 1
+        @users[1].id.should == 3
+      end
     end
   end
 
