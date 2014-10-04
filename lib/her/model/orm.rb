@@ -198,7 +198,7 @@ module Her
           attributes = [attributes] if !attributes.kind_of?(Array)
           # HACK: No callbacks are working
           built_resources = Her::Collection.new(attributes.map {|attr| build(attr)})
-          params = {}
+          params = built_resources.first.attributes
           method = :put
           #request_path = self.first.class.collection_path
 

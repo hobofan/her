@@ -385,6 +385,38 @@ describe Her::Model::ORM do
         @users[0].id.should == 1
         @users[0].fullname.should == "Tobias Fünke"
       end
+
+      context 'and custom collection_path' do
+        before do
+          Her::API.setup :url => "https://api.example.com" do |builder|
+            builder.use Her::Middleware::FirstLevelParseJSON
+            builder.use Faraday::Request::UrlEncoded
+            builder.adapter :test do |stub|
+              stub.get("/users/4") { |env| [200, {}, { users: [{ :id => 4, :fullname => "Tobias Fünke"}]}.to_json] }
+              stub.put("/users/4/comments") { |env| [200, {}, { comments: [{ :user_id => 4, :id => 1, :text => "One Comment"}, { :user_id => 4, :id => 2, :text => "Two Comment"}]}.to_json] }
+            end
+          end
+
+          spawn_model "Foo::User" do
+            has_many :comments
+            parse_root_in_json true, format: :json_api
+          end
+
+          spawn_model "Foo::Comment" do
+            belongs_to :user
+            collection_path '/users/:user_id/comments'
+            parse_root_in_json true, format: :json_api
+          end
+        end
+
+        it 'creates multiple resources' do
+          @comments = Foo::User.find(4).comments.create([{:text => "One Comment"}, {:text => "Two Comment"}])
+          @comments.length == 2
+          @comments[0].id.should == 1
+          @comments[0].user_id.should == 4
+          @comments[0].text.should == "One Comment"
+        end
+      end
     end
   end
 

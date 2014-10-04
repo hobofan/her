@@ -80,6 +80,7 @@ module Her
               @parent.attributes[@name] << resource
             end
           else
+            attributes = attributes.map { |attr| attr.merge(:"#{@parent.singularized_resource_name}_id" => @parent.id) }
             resource = @klass.create_multiple(attributes)
 
             @parent.attributes[@name] ||= Her::Collection.new
