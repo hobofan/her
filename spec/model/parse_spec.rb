@@ -29,6 +29,13 @@ describe Her::Model::Parse do
         @new_user.to_params.should == { :user => { :fullname => "Tobias Fünke" } }
       end
 
+      it "wraps params in the element name in `to_params`" do
+        @new_user1 = Foo::User.new(:fullname => "Tobias Fünke")
+        @new_user2 = Foo::User.new(:fullname => "Lindsay Fünke")
+        @new_users = Her::Collection.new([@new_user1, @new_user2])
+        @new_users.to_params.should == [{ :user => { :fullname => "Tobias Fünke" } }, { :user => { :fullname => "Lindsay Fünke" } }]
+      end
+
       it "wraps params in the element name in `.create`" do
         @new_user = Foo::User.admins(:fullname => "Tobias Fünke")
         @new_user.fullname.should == "Tobias Fünke"

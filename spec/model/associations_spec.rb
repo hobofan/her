@@ -464,6 +464,36 @@ describe Her::Model::Associations do
         @comment.user_id.should == 10
         @user.comments.should == [@comment]
       end
+
+      context 'multiple resources' do
+        # HACK: ugly copy and past from above
+        before do
+          Her::API.setup :url => "https://api.example.com" do |builder|
+            builder.use Her::Middleware::FirstLevelParseJSON
+            builder.use Faraday::Request::UrlEncoded
+            builder.adapter :test do |stub|
+              stub.get("/users/10") { |env| [200, {}, { :id => 10 }.to_json] }
+              stub.put("/comments") { |env| [200, {}, [{ :id => 1, :body => "Hello!", :user_id => 10 }, { :id => 2, :body => "Goodbye!", :user_id => 10 }].to_json] }
+            end
+          end
+
+          Foo::User.use_api Her::API.default_api
+          Foo::Comment.use_api Her::API.default_api
+        end
+
+        it "saves multiple resources" do
+          @user = Foo::User.find(10)
+          @comments = @user.comments.create([{:body => "Hello!"}, {:body => "Goodbye!"}])
+          @comments.length.should == 2
+          @comments[0].id.should == 1
+          @comments[0].body.should == "Hello!"
+          @comments[0].user_id.should == 10
+          @comments[1].id.should == 2
+          @comments[1].body.should == "Goodbye!"
+          @comments[1].user_id.should == 10
+          #@user.comments.should == @comments
+        end
+      end
     end
 
     context "with #new" do

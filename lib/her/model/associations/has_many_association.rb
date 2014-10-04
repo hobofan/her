@@ -70,10 +70,18 @@ module Her
         #   user = User.find(1)
         #   user.comments.create(:body => "Hello!")
         #   user.comments # => [#<Comment id=2 user_id=1 body="Hello!">]
-        def create(attributes = {})
-          resource = build(attributes)
+        def create(attributes = [{}])
+          attributes = [attributes] unless attributes.kind_of?(Array)
+          if attributes.length == 1
+            resource = build(attributes.first)
 
-          if resource.save
+            if resource.save
+              @parent.attributes[@name] ||= Her::Collection.new
+              @parent.attributes[@name] << resource
+            end
+          else
+            resource = @klass.create_multiple(attributes)
+
             @parent.attributes[@name] ||= Her::Collection.new
             @parent.attributes[@name] << resource
           end

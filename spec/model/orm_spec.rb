@@ -365,6 +365,27 @@ describe Her::Model::ORM do
       @company.save.should be_falsey
       @company.name.should == "Company Inc."
     end
+
+    context 'with create_multiple' do
+      before do
+        Her::API.setup :url => "https://api.example.com" do |builder|
+          builder.use Her::Middleware::FirstLevelParseJSON
+          builder.use Faraday::Request::UrlEncoded
+          builder.adapter :test do |stub|
+            stub.put("/users") { |env| [200, {}, [{ :id => 1, :fullname => "Tobias Fünke"}, { :id => 2, :fullname => "Lindsay Fünke"}].to_json] }
+          end
+        end
+
+        spawn_model "Foo::User"
+      end
+
+      it 'creates multiple resources' do
+        @users = Foo::User.create_multiple([{:fullname => "Tobias Fünke"}, {:fullname => "Lindsay Fünke"}])
+        @users.length == 2
+        @users[0].id.should == 1
+        @users[0].fullname.should == "Tobias Fünke"
+      end
+    end
   end
 
   context "updating resources" do
