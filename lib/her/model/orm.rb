@@ -194,6 +194,28 @@ module Her
           resource
         end
 
+        def create_multiple(attributes = [{}])
+          attributes = [attributes] if !attributes.kind_of?(Array)
+          # HACK: No callbacks are working
+          built_resources = Her::Collection.new(attributes.map {|attr| build(attr)})
+          params = built_resources.first.attributes
+          method = :put
+          #request_path = self.first.class.collection_path
+
+          ids = built_resources.map(&:id)
+
+          request_params = params.merge(
+            root_element.to_s.pluralize.to_sym => built_resources.to_params,
+            :_method => method,
+            :_path => self.build_request_path(params.merge(primary_key => ids))
+          )
+          self.request(request_params) do |parsed_data, response|
+            if response.success?
+              self.new_collection(parsed_data)
+            end
+          end
+        end
+
         private
         # @private
         def blank_relation
